@@ -13,6 +13,7 @@
 #include "driver/gpio.h"
 #include "driver/twai.h"
 #include "sonar.hpp"
+#include "can.hpp"
 #define TESTPIN 21
 /*==========================================================================================
 	外部関数定義
@@ -22,6 +23,7 @@
 /*==========================================================================================
 	内部定数定義
 ==========================================================================================*/
+
 /*CAN設定*/
 #define CAN_TX GPIO_NUM_27
 #define CAN_RX GPIO_NUM_26
@@ -72,13 +74,11 @@ void canBegin(){
       printf("Failed to start driver\n");
       return;
   }
-  message_D0.identifier = 0xD0;		//送信データアドレス設定
+  message_D0.identifier = eSAFE_SONAR;		//送信データアドレス設定
   message_D0.data_length_code = 8;	//送信データ長
-  message_D1.identifier = 0xD1;		//送信データアドレス設定
-  message_D1.data_length_code = 8;	//送信データ長
+  
   for (int i = 0; i < 8; i++) {
     message_D0.data[i] = dataD0[i];
-    message_D1.data[i] = dataD1[i];
   }
   // xTaskCreatePinnedToCore(canIsReceive, "cmd", 4096, NULL, 24, &thp[0], 0);
 }
@@ -91,14 +91,16 @@ void canBegin(){
 void canIsSend(){
 	  dataD0[0] = (sonarData[0] >> 8) & 0xFF;
     dataD0[1] = sonarData[0] & 0xFF;
-    dataD1[0] = (sonarData[1] >> 8) & 0xFF;
-    dataD1[1] = sonarData[1] & 0xFF;
+    dataD0[2] = (sonarData[1] >> 8) & 0xFF;
+    dataD0[3] = sonarData[1] & 0xFF;
+    dataD0[4] = (sonarData[2] >> 8) & 0xFF;
+    dataD0[5] = sonarData[2] & 0xFF;
+    dataD0[6] = (sonarData[3] >> 8) & 0xFF;
+    dataD0[7] = sonarData[3] & 0xFF;
     for (int i = 0; i < 8; i++) {
       message_D0.data[i] = dataD0[i];
-      message_D1.data[i] = dataD1[i];
     }
     twai_transmit(&message_D0, pdMS_TO_TICKS(50));
-    twai_transmit(&message_D1, pdMS_TO_TICKS(50));
 }
 
 /**
